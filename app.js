@@ -4,7 +4,7 @@ const app = express();
 const port = 3000;
 
 // Use body-parser middleware to parse JSON request bodies
-app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // In-memory list of products
 let products = [
@@ -22,7 +22,7 @@ let products = [
 app.get('/add-product', (req, res) => {
     const html = `
         <h1>Add a new product</h1>
-        <form method="POST" action="/add-product">
+        <form method="POST" action="/add-product" enctype="application/x-www-form-urlencoded">
             <label for="productId">Product ID:</label>
             <input type="text" id="productId" name="productId"><br>
 
@@ -41,6 +41,7 @@ app.post('/add-product', (req, res) => {
         productId: req.body.productId,
         price: req.body.price
     };
+    console.log(newProduct); //printing undefined in json response how to solve it
     products.push(newProduct);
     res.redirect('/products');
 });
