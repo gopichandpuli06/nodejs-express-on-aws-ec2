@@ -1,37 +1,65 @@
 const express = require('express');
+const bodyParser = require('body-parser');
 const app = express();
 const port = 3000;
 
-app.get('/', (req, res) => {
-    const html = `
-        <h1>A Demo Application to test in EC2 instance</h1>
-        <h4>Message: Success Again</h4>
-        <p>Version 1.0</p>
-        <button onclick="redirectToProducts()">View Product detials</button>
-        <script>
-            function redirectToProducts() {
-                window.location.href = '/products';
-            }
-        </script>
-    `;
-    
-    //res.send('<h1>A Demo Application to test in EC2 instance</h1> <h4>Message: Success Again</h4> <p>Version 1.0</p>');
-    res.send(html);
-})
+// Use body-parser middleware to parse JSON request bodies
+app.use(bodyParser.json());
 
+// In-memory list of products
+let products = [
+    {
+        productId: "101",
+        price: 100
+    },
+    {
+        productId: "102",
+        price: 200
+    }
+];
+
+// Serve the HTML form for adding new products
+app.get('/add-product', (req, res) => {
+    const html = `
+        <h1>Add a new product</h1>
+        <form method="POST" action="/add-product">
+            <label for="productId">Product ID:</label>
+            <input type="text" id="productId" name="productId"><br>
+
+            <label for="price">Price:</label>
+            <input type="number" id="price" name="price"><br>
+
+            <input type="submit" value="Add Product">
+        </form>
+    `;
+    res.send(html);
+});
+
+// Handle POST request to add a new product
+app.post('/add-product', (req, res) => {
+    const newProduct = {
+        productId: req.body.productId,
+        price: req.body.price
+    };
+    products.push(newProduct);
+    res.redirect('/products');
+});
+
+// Serve the list of products
 app.get('/products', (req, res) => {
-    res.send([
-        {
-            productId: "101",
-            price: 100
-        },
-        {
-            productId: "102",
-            price: 200
-        }
-    ])
-})
+    const productList = products.map(product => {
+        return `<li>${product.productId}: $${product.price}</li>`;
+    }).join('');
+    const html = `
+        <h1>Products</h1>
+        <ul>
+            ${productList}
+        </ul>
+        <a href="/add-product">Add Product</a>
+    `;
+    res.send(html);
+});
 
 app.listen(port, ()=>{
     console.log(`Demo app is up and listening to port: ${port}`);
-}) 
+});
