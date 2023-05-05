@@ -3,8 +3,20 @@ const app = express();
 const port = 3000;
 
 app.get('/', (req, res) => {
-    res.send('<h1>A Demo Application to test in EC2 instance</h1> <h4>Message: Success Again</h4> <p>Version 1.0</p>');
-
+    const html = `
+        <h1>A Demo Application to test in EC2 instance</h1>
+        <h4>Message: Success Again</h4>
+        <p>Version 1.0</p>
+        <button onclick="redirectToProducts()">View Products</button>
+        <script>
+            function redirectToProducts() {
+                window.location.href = '/products';
+            }
+        </script>
+    `;
+    
+    //res.send('<h1>A Demo Application to test in EC2 instance</h1> <h4>Message: Success Again</h4> <p>Version 1.0</p>');
+    res.send(html);
 })
 
 app.get('/products', (req, res) => {
