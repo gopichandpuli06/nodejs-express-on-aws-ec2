@@ -7,7 +7,7 @@ app.get('/', (req, res) => {
         <h1>A Demo Application to test in EC2 instance</h1>
         <h4>Message: Success Again</h4>
         <p>Version 1.0</p>
-        <button onclick="redirectToProducts()">View Products</button>
+        <button onclick="redirectToProducts()">View Product detials</button>
         <script>
             function redirectToProducts() {
                 window.location.href = '/products';
