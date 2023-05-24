@@ -6,6 +6,8 @@ const port = 3000;
 // Use body-parser middleware to parse JSON request bodies
 app.use(bodyParser.urlencoded({ extended: true }));
 
+
+
 // In-memory list of products
 let products = [
     {
