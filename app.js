@@ -21,7 +21,7 @@ let products = [
 ];
 
 
-
+//hello
 
 // Serve the HTML form for adding new products
 app.get('/add-product', (req, res) => {
