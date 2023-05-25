@@ -28,6 +28,7 @@ let products = [
 //test hello5
 //test hello6
 //test hello7
+//test hello8
 
 // Serve the HTML form for adding new products
 app.get('/add-product', (req, res) => {
