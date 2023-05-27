@@ -4,6 +4,6 @@
     "dependencies": {
         "express": "4.18.2",
 		"abc":"0.0.2",
-		"def":"0.01."
+		"def":"0.0.2"
     }
 }
