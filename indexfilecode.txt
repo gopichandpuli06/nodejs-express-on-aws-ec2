@@ -1,0 +1,177 @@
+/**
+ * This is the main entrypoint to your Probot app
+ * @param {import('probot').Probot} app
+ * 
+ */
+//const fetch = require('node-fetch');
+//const fs = require('fs');
+//const path = require('path');
+
+const fetch = require('node-fetch');
+const { Octokit } = require('@octokit/rest');
+
+module.exports = (app) => {
+  app.log.info('Yay, the app was loaded!');
+  app.on('pull_request.opened', async (context) => {
+    console.log("pr triggered");
+    const owner = context.payload.repository.owner.login;
+    const repo = context.payload.repository.name;
+    const baseSha = context.payload.pull_request.base.sha;
+    const headSha = context.payload.pull_request.head.sha;
+    console.log(owner)
+    console.log(repo)
+    console.log(baseSha)
+    console.log(headSha)
+    //const tokenFilePath = path.join(__dirname, 'config.txt');
+    //const accessToken = fs.readFileSync(tokenFilePath, 'utf8').trim();
+    //console.log(accessToken)
+    const octokit = new Octokit({
+      auth: 'Bearer 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'
+    });
+
+    try {
+
+      //////////// Collecting and printing dependencies from package.json //////////////
+      const paths = ['requirement.txt', 'package.json', 'Gemfile'];
+      const dependencyFiles = [];
+
+      for (const path of paths) {
+        try {
+          const response = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}?ref={headSha}', {
+            owner: owner,
+            repo: repo,
+            path: path,
+            headSha: headSha,
+            headers: {
+              'X-GitHub-Api-Version': '2022-11-28',
+            },
+          });
+
+          if (response.status === 200) {
+            console.log(response.data.content);
+            const fileContent = Buffer.from(response.data.content, 'base64').toString('utf8');
+            const dependencies = parseDependencies(path, fileContent);
+            console.log('/////////////////');
+            console.log(dependencies);
+            dependencyFiles.push({ path, dependencies });
+          }
+          else {
+            console.log(`${path} not found in the repository. Skipping...`);
+          }
+        } catch (error) {
+          if (error.status === 404) {
+            console.log(`${path} not found in the repository. Skipping...`);
+          } else {
+            throw error;
+          }
+        }
+      }
+      
+
+      /*console.log(response1.content);
+	    console.log(response1.data.content);
+      var filecontent = atob(response1.data.content); //base64 decode the content string to the data present in the file here package.json
+      console.log(filecontent);
+      const packageJson = JSON.parse(filecontent);
+      console.log("//////////////////////")
+      console.log(packageJson);
+      const dependent = packageJson.dependencies
+      console.log(dependent);*/
+
+
+      let commentBody = 'Dependency in files:\n\n';
+      /*Object.entries(dependent).forEach(([dependency, version]) => {
+        commentBody1 += `- ${dependency}: ${version}\n`;
+      });*/
+      dependencyFiles.forEach(file => {
+        commentBody += `Dependencies in ${file.path}:\n`;
+        Object.entries(file.dependencies).forEach(([dependency, version]) => {
+          commentBody += `- ${dependency}: ${version}\n`;
+        });
+        commentBody += '\n';
+      });
+
+      // Add the comment to the pull request
+      await context.octokit.issues.createComment({
+        owner: owner,
+        repo: repo,
+        issue_number: context.payload.pull_request.number,
+        body: commentBody,
+      });
+
+
+      console.log('Comment created successfully!');
+
+      /////////////////////////////////////////////////////////////////////
+
+      
+
+    } catch (error) {
+      console.error('Error retrieving dependency graph changes:', error);
+    }
+  });
+
+  ///////////// function goes here ///////////////////
+  function parseDependencies(filePath, fileContent) {
+    const dependencies = {};
+  
+    if (filePath === 'requirement.txt') {
+      // Parse requirement.txt file format
+      const lines = fileContent.split('\n');
+      lines.forEach(line => {
+        const parts = line.split('==');
+        if (parts.length === 2) {
+          const dependency = parts[0].trim();
+          const version = parts[1].trim();
+          dependencies[dependency] = version;
+        }
+      });
+    } else if (filePath === 'package.json') {
+      // Parse package.json file format
+      const packageJson = JSON.parse(fileContent);
+      return packageJson.dependencies || {};
+    }else if (filePath === 'Gemfile') {
+      // Parse Gemfile format
+      // Implement your logic here to extract dependencies
+      const lines = fileContent.split('\n');
+      let isParsingGroup = false;
+      let currentGroup = 'default';
+
+      lines.forEach(line => {
+        line = line.trim();
+
+        if (line.startsWith('gem ')) {
+          const gemInfo = line.match(/gem\s+(["'])([^'"]+)\1/);
+
+          if (gemInfo && gemInfo[2]) {
+            const gemName = gemInfo[2].trim();
+            const versionMatch = line.match(/,\s*(["'])([^'"]+)\1/);
+            let version = null;
+
+            if (versionMatch && versionMatch[2]) {
+              version = versionMatch[2].trim();
+              if (version === '< 5.16') {
+                version = '>= 5.15.0 < 5.16';
+              }
+            }
+            console.log("the gem dependencies are:");
+            dependencies[gemName] = version;
+            console.log(dependencies)
+          }
+        } else if (line === 'group ') {
+          isParsingGroup = true;
+          const groupName = line.match(/group\s+(["'])([^'"]+)\1/)[2].trim();
+          currentGroup = groupName;
+        } else if (line === 'end') {
+          isParsingGroup = false;
+          currentGroup = 'default';
+        }
+    });
+      
+    }
+  
+    return dependencies;
+  }
+
+  //////////////////////////////////////////////////
+};
